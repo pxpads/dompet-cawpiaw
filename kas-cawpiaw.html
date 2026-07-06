@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Nota Kas — Cawpiaw</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Anton&family=Caveat:wght@600&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root{
+    --bg: #DEDAD0;
+    --paper: #FFFDF7;
+    --ink: #2A2A25;
+    --ink-soft: #6B6558;
+    --rule: #C9C2AC;
+    --red: #B0463C;
+    --red-bg: #F3E1DD;
+    --green: #3F7A5E;
+    --green-bg: #E1EEE6;
+    --tape: #E8A33D;
+  }
+
+  *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+
+  body{
+    margin:0;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(0,0,0,0.035) 1px, transparent 0);
+    background-size: 14px 14px;
+    font-family:'JetBrains Mono', monospace;
+    color: var(--ink);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding: 20px 12px 100px;
+  }
+
+  .app{
+    width:100%;
+    max-width:430px;
+  }
+
+  /* ---- receipt (signature element) ---- */
+  .receipt-wrap{
+    filter: drop-shadow(0 6px 14px rgba(0,0,0,0.18));
+    margin-bottom: 22px;
+  }
+  .receipt{
+    background: var(--paper);
+    padding: 26px 22px 18px;
+    clip-path: polygon(
+      0% 0%, 5% 2.5%, 10% 0%, 15% 2.5%, 20% 0%, 25% 2.5%, 30% 0%, 35% 2.5%, 40% 0%, 45% 2.5%, 50% 0%,
+      55% 2.5%, 60% 0%, 65% 2.5%, 70% 0%, 75% 2.5%, 80% 0%, 85% 2.5%, 90% 0%, 95% 2.5%, 100% 0%,
+      100% 100%, 95% 97.5%, 90% 100%, 85% 97.5%, 80% 100%, 75% 97.5%, 70% 100%, 65% 97.5%, 60% 100%,
+      55% 97.5%, 50% 100%, 45% 97.5%, 40% 100%, 35% 97.5%, 30% 100%, 25% 97.5%, 20% 100%, 15% 97.5%,
+      10% 100%, 5% 97.5%, 0% 100%
+    );
+  }
+  .tape{
+    position:relative;
+    width:120px; height:34px;
+    background: var(--tape);
+    opacity:0.85;
+    margin: -40px auto 10px;
+    transform: rotate(-3deg);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  }
+  .stamp{
+    display:inline-block;
+    border: 3px solid var(--red);
+    color: var(--red);
+    font-family:'Anton', sans-serif;
+    letter-spacing: 2px;
+    padding: 4px 14px;
+    transform: rotate(-4deg);
+    font-size: 22px;
+  }
+  .receipt-head{ text-align:center; margin-bottom: 6px; }
+  .receipt-sub{
+    text-align:center;
+    font-size:12px;
+    color: var(--ink-soft);
+    margin: 6px 0 2px;
+  }
+  .receipt-name{
+    text-align:center;
+    font-family:'Caveat', cursive;
+    font-weight:600;
+    font-size: 22px;
+    color: var(--ink);
+    margin: 0 0 14px;
+  }
+  .dash{
+    border:none;
+    border-top: 2px dashed var(--rule);
+    margin: 14px 0;
+  }
+  .balance-label{
+    text-align:center;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+  }
+  .balance-value{
+    text-align:center;
+    font-size: 34px;
+    font-weight:700;
+    margin: 4px 0 2px;
+    letter-spacing: -1px;
+  }
+  .totals{
+    display:flex;
+    justify-content:space-between;
+    font-size: 13px;
+    padding: 0 4px;
+  }
+  .totals .col{ text-align:center; flex:1; }
+  .totals .col span{ display:block; color: var(--ink-soft); font-size:11px; margin-bottom:2px;}
+  .totals .in{ color: var(--green); font-weight:700; }
+  .totals .out{ color: var(--red); font-weight:700; }
+  .barcode{
+    height: 30px;
+    margin: 14px auto 4px;
+    width: 80%;
+    background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 5px, var(--ink) 5px 6px, transparent 6px 10px, var(--ink) 10px 13px, transparent 13px 15px);
+    opacity: 0.85;
+  }
+  .footer-note{
+    text-align:center;
+    font-size: 10px;
+    letter-spacing:1px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+  }
+
+  /* ---- month nav ---- */
+  .month-nav{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background: var(--paper);
+    border-radius: 10px;
+    padding: 10px 6px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+  .month-nav button{
+    background:none; border:none; font-size:18px; color: var(--ink);
+    padding: 6px 14px; cursor:pointer; font-family: inherit;
+  }
+  .month-nav .label{ font-weight:700; font-size:14px; }
+
+  /* ---- tx list ---- */
+  .day-group{ margin-bottom: 10px; }
+  .day-header{
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 16px 4px 6px;
+    display:flex;
+    justify-content:space-between;
+  }
+  .tx-card{
+    background: var(--paper);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 6px;
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    position:relative;
+    overflow:hidden;
+  }
+  .tx-icon{
+    width:36px; height:36px;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:17px;
+    flex-shrink:0;
+  }
+  .tx-icon.out{ background: var(--red-bg); }
+  .tx-icon.in{ background: var(--green-bg); }
+  .tx-info{ flex:1; min-width:0; }
+  .tx-cat{ font-size:13px; font-weight:700; }
+  .tx-note{ font-size:11px; color: var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tx-amt{ font-size:14px; font-weight:700; white-space:nowrap; }
+  .tx-amt.out{ color: var(--red); }
+  .tx-amt.in{ color: var(--green); }
+  .tx-del{
+    background: var(--red);
+    color:#fff;
+    border:none;
+    width:28px; height:28px;
+    border-radius:50%;
+    font-size:14px;
+    flex-shrink:0;
+    cursor:pointer;
+  }
+
+  .empty{
+    text-align:center;
+    padding: 40px 20px;
+    color: var(--ink-soft);
+    font-size:13px;
+    line-height:1.6;
+  }
+
+  /* ---- fab ---- */
+  .fab{
+    position:fixed;
+    bottom:24px;
+    left:50%;
+    transform:translateX(-50%);
+    width:56px; height:56px;
+    border-radius:50%;
+    background: var(--ink);
+    color: var(--paper);
+    border:none;
+    font-size:28px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    cursor:pointer;
+    z-index:50;
+  }
+
+  /* ---- sheet ---- */
+  .overlay{
+    position:fixed; inset:0;
+    background: rgba(0,0,0,0.45);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:100;
+  }
+  .overlay.open{ display:flex; }
+  .sheet{
+    background: var(--paper);
+    width:100%;
+    max-width:430px;
+    border-radius: 18px 18px 0 0;
+    padding: 18px 20px 24px;
+    max-height: 88vh;
+    overflow-y:auto;
+  }
+  .sheet-handle{
+    width:40px; height:4px;
+    background: var(--rule);
+    border-radius:2px;
+    margin: 0 auto 16px;
+  }
+  .sheet h3{
+    font-family:'Anton', sans-serif;
+    letter-spacing:1px;
+    margin: 0 0 14px;
+    font-size:18px;
+  }
+  .type-toggle{
+    display:flex;
+    gap:8px;
+    margin-bottom:16px;
+  }
+  .type-btn{
+    flex:1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 2px solid var(--rule);
+    background: var(--paper);
+    font-family:'Anton', sans-serif;
+    letter-spacing:1px;
+    font-size:13px;
+    color: var(--ink-soft);
+    cursor:pointer;
+  }
+  .type-btn.active.out{ border-color: var(--red); color: var(--red); background: var(--red-bg); }
+  .type-btn.active.in{ border-color: var(--green); color: var(--green); background: var(--green-bg); }
+
+  label{
+    display:block;
+    font-size:11px;
+    color: var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:1px;
+    margin: 14px 0 6px;
+  }
+  input[type=number], input[type=text], input[type=date]{
+    width:100%;
+    border: 2px solid var(--rule);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:15px;
+    background: #fff;
+    color: var(--ink);
+  }
+  input[type=number]{ font-size:22px; font-weight:700; }
+  .cat-grid{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .chip{
+    padding: 7px 12px;
+    border-radius: 16px;
+    border: 2px solid var(--rule);
+    background:#fff;
+    font-size:12px;
+    font-family: inherit;
+    cursor:pointer;
+    color: var(--ink-soft);
+  }
+  .chip.active{ border-color: var(--ink); color: var(--ink); background: var(--tape); }
+  .sheet-actions{
+    display:flex;
+    gap:10px;
+    margin-top:20px;
+  }
+  .btn{
+    flex:1;
+    padding: 12px;
+    border-radius: 8px;
+    border:none;
+    font-family:'Anton', sans-serif;
+    letter-spacing:1px;
+    font-size:14px;
+    cursor:pointer;
+  }
+  .btn-cancel{ background: var(--rule); color: var(--ink); }
+  .btn-save{ background: var(--ink); color: var(--paper); }
+
+  .toast{
+    position:fixed;
+    top:16px; left:50%;
+    transform:translateX(-50%);
+    background: var(--ink);
+    color: var(--paper);
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size:12px;
+    z-index:200;
+    opacity:0;
+    transition: opacity 0.25s;
+    pointer-events:none;
+  }
+  .toast.show{ opacity:1; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="receipt-wrap">
+    <div class="receipt">
+      <div class="tape"></div>
+      <div class="receipt-head"><span class="stamp">NOTA KAS</span></div>
+      <div class="receipt-sub">catatan kos harian</div>
+      <div class="receipt-name">Sefia Intan Permatasari a.k.a Cawpiaw</div>
+      <hr class="dash">
+      <div class="balance-label">Sisa uang sekarang</div>
+      <div class="balance-value" id="balanceValue">Rp 0</div>
+      <div class="totals">
+        <div class="col"><span>Masuk (bulan ini)</span><div class="in" id="totalIn">Rp 0</div></div>
+        <div class="col"><span>Keluar (bulan ini)</span><div class="out" id="totalOut">Rp 0</div></div>
+      </div>
+      <hr class="dash">
+      <div class="barcode"></div>
+      <div class="footer-note">jangan boros ya cawpiaw</div>
+    </div>
+  </div>
+
+  <div class="month-nav">
+    <button id="prevMonth">‹</button>
+    <div class="label" id="monthLabel">—</div>
+    <button id="nextMonth">›</button>
+  </div>
+
+  <div id="txList"></div>
+</div>
+
+<button class="fab" id="openSheet">+</button>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>CATAT TRANSAKSI</h3>
+    <div class="type-toggle">
+      <button class="type-btn out active" id="btnOut" data-type="out">PENGELUARAN</button>
+      <button class="type-btn in" id="btnIn" data-type="in">PEMASUKAN</button>
+    </div>
+
+    <label>Jumlah (Rp)</label>
+    <input type="number" id="amountInput" placeholder="0" inputmode="numeric">
+
+    <label>Kategori</label>
+    <div class="cat-grid" id="catGrid"></div>
+
+    <label>Catatan (opsional)</label>
+    <input type="text" id="noteInput" placeholder="misal: makan siang warteg">
+
+    <label>Tanggal</label>
+    <input type="date" id="dateInput">
+
+    <div class="sheet-actions">
+      <button class="btn btn-cancel" id="cancelBtn">Batal</button>
+      <button class="btn btn-save" id="saveBtn">Catat</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'cawpiaw-kos-transactions';
+
+const CATEGORIES = {
+  out: [
+    {id:'makan', label:'Makan', icon:'🍜'},
+    {id:'kos', label:'Kos & Sewa', icon:'🏠'},
+    {id:'listrik', label:'Listrik/Wifi', icon:'💡'},
+    {id:'transport', label:'Transport', icon:'🛵'},
+    {id:'pulsa', label:'Pulsa/Internet', icon:'📶'},
+    {id:'laundry', label:'Laundry', icon:'🧺'},
+    {id:'jajan', label:'Jajan', icon:'🧋'},
+    {id:'kuliah', label:'Kuliah', icon:'📚'},
+    {id:'kesehatan', label:'Kesehatan', icon:'💊'},
+    {id:'lain_out', label:'Lainnya', icon:'📦'},
+  ],
+  in: [
+    {id:'saku', label:'Uang Saku', icon:'💰'},
+    {id:'kerja', label:'Kerja/Freelance', icon:'💼'},
+    {id:'beasiswa', label:'Beasiswa', icon:'🎓'},
+    {id:'lain_in', label:'Lainnya', icon:'📦'},
+  ]
+};
+
+let transactions = [];
+let currentType = 'out';
+let currentCat = null;
+let viewMonth = new Date();
+
+function rupiah(n){
+  return 'Rp ' + Math.round(n).toLocaleString('id-ID');
+}
+
+function fmtDate(dstr){
+  const d = new Date(dstr + 'T00:00:00');
+  return d.toLocaleDateString('id-ID', {weekday:'short', day:'numeric', month:'short'});
+}
+
+function todayStr(){
+  const d = new Date();
+  return d.toISOString().slice(0,10);
+}
+
+async function loadData(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, false);
+    transactions = res ? JSON.parse(res.value) : [];
+  }catch(e){
+    transactions = [];
+  }
+  render();
+}
+
+async function saveData(){
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify(transactions), false);
+  }catch(e){
+    showToast('Gagal menyimpan, coba lagi ya');
+  }
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+function catMeta(type, id){
+  return CATEGORIES[type].find(c=>c.id===id) || {label:id, icon:'📦'};
+}
+
+function render(){
+  renderMonthLabel();
+  renderBalanceAndTotals();
+  renderList();
+}
+
+function renderMonthLabel(){
+  document.getElementById('monthLabel').textContent =
+    viewMonth.toLocaleDateString('id-ID', {month:'long', year:'numeric'});
+}
+
+function inSelectedMonth(tx){
+  const d = new Date(tx.date + 'T00:00:00');
+  return d.getFullYear() === viewMonth.getFullYear() && d.getMonth() === viewMonth.getMonth();
+}
+
+function renderBalanceAndTotals(){
+  let allIn = 0, allOut = 0, monthIn = 0, monthOut = 0;
+  transactions.forEach(tx=>{
+    if(tx.type === 'in') allIn += tx.amount; else allOut += tx.amount;
+    if(inSelectedMonth(tx)){
+      if(tx.type === 'in') monthIn += tx.amount; else monthOut += tx.amount;
+    }
+  });
+  document.getElementById('balanceValue').textContent = rupiah(allIn - allOut);
+  document.getElementById('totalIn').textContent = rupiah(monthIn);
+  document.getElementById('totalOut').textContent = rupiah(monthOut);
+}
+
+function renderList(){
+  const list = document.getElementById('txList');
+  const monthTx = transactions.filter(inSelectedMonth).sort((a,b)=> (a.date+a.createdAt) < (b.date+b.createdAt) ? 1 : -1);
+
+  if(monthTx.length === 0){
+    list.innerHTML = '<div class="empty">Belum ada catatan bulan ini.<br>Tekan tombol + buat mulai nyatet, Cawpiaw.</div>';
+    return;
+  }
+
+  const groups = {};
+  monthTx.forEach(tx=>{
+    if(!groups[tx.date]) groups[tx.date] = [];
+    groups[tx.date].push(tx);
+  });
+
+  let html = '';
+  Object.keys(groups).sort().reverse().forEach(date=>{
+    const dayTx = groups[date];
+    const dayTotal = dayTx.reduce((s,t)=> s + (t.type==='in'? t.amount : -t.amount), 0);
+    html += `<div class="day-group">
+      <div class="day-header"><span>${fmtDate(date)}</span><span>${dayTotal>=0?'+':''}${rupiah(dayTotal).replace('Rp ','')}</span></div>`;
+    dayTx.forEach(tx=>{
+      const meta = catMeta(tx.type, tx.category);
+      html += `<div class="tx-card">
+        <div class="tx-icon ${tx.type}">${meta.icon}</div>
+        <div class="tx-info">
+          <div class="tx-cat">${meta.label}</div>
+          ${tx.note ? `<div class="tx-note">${escapeHtml(tx.note)}</div>` : ''}
+        </div>
+        <div class="tx-amt ${tx.type}">${tx.type==='in'?'+':'-'}${rupiah(tx.amount)}</div>
+        <button class="tx-del" data-id="${tx.id}">✕</button>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  list.innerHTML = html;
+
+  list.querySelectorAll('.tx-del').forEach(btn=>{
+    btn.addEventListener('click', onDelete);
+  });
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+async function onDelete(e){
+  const id = e.currentTarget.dataset.id;
+  if(!confirm('Hapus catatan ini?')) return;
+  transactions = transactions.filter(t=>t.id !== id);
+  render();
+  await saveData();
+  showToast('Catatan dihapus');
+}
+
+function renderCatGrid(){
+  const grid = document.getElementById('catGrid');
+  grid.innerHTML = '';
+  CATEGORIES[currentType].forEach(c=>{
+    const btn = document.createElement('button');
+    btn.className = 'chip' + (currentCat === c.id ? ' active' : '');
+    btn.textContent = c.icon + ' ' + c.label;
+    btn.dataset.id = c.id;
+    btn.addEventListener('click', ()=>{
+      currentCat = c.id;
+      renderCatGrid();
+    });
+    grid.appendChild(btn);
+  });
+}
+
+function openSheet(){
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('dateInput').value = todayStr();
+  document.getElementById('amountInput').value = '';
+  document.getElementById('noteInput').value = '';
+  currentCat = null;
+  setType('out');
+}
+
+function closeSheet(){
+  document.getElementById('overlay').classList.remove('open');
+}
+
+function setType(type){
+  currentType = type;
+  currentCat = null;
+  document.getElementById('btnOut').classList.toggle('active', type === 'out');
+  document.getElementById('btnIn').classList.toggle('active', type === 'in');
+  renderCatGrid();
+}
+
+async function onSave(){
+  const amount = parseFloat(document.getElementById('amountInput').value);
+  const date = document.getElementById('dateInput').value || todayStr();
+  const note = document.getElementById('noteInput').value.trim();
+
+  if(!amount || amount <= 0){
+    showToast('Isi jumlahnya dulu ya');
+    return;
+  }
+  if(!currentCat){
+    showToast('Pilih kategori dulu ya');
+    return;
+  }
+
+  transactions.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+    type: currentType,
+    amount: amount,
+    category: currentCat,
+    note: note,
+    date: date,
+    createdAt: Date.now().toString()
+  });
+
+  closeSheet();
+  render();
+  await saveData();
+  showToast('Tercatat!');
+}
+
+document.getElementById('openSheet').addEventListener('click', openSheet);
+document.getElementById('cancelBtn').addEventListener('click', closeSheet);
+document.getElementById('overlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'overlay') closeSheet();
+});
+document.getElementById('btnOut').addEventListener('click', ()=>setType('out'));
+document.getElementById('btnIn').addEventListener('click', ()=>setType('in'));
+document.getElementById('saveBtn').addEventListener('click', onSave);
+
+document.getElementById('prevMonth').addEventListener('click', ()=>{
+  viewMonth.setMonth(viewMonth.getMonth()-1);
+  render();
+});
+document.getElementById('nextMonth').addEventListener('click', ()=>{
+  viewMonth.setMonth(viewMonth.getMonth()+1);
+  render();
+});
+
+loadData();
+</script>
+
+</body>
+</html>
