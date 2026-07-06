@@ -8,16 +8,16 @@
   @import url('https://fonts.googleapis.com/css2?family=Anton&family=Caveat:wght@600&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
   :root{
-    --bg: #DEDAD0;
-    --paper: #FFFDF7;
-    --ink: #2A2A25;
-    --ink-soft: #6B6558;
-    --rule: #C9C2AC;
-    --red: #B0463C;
-    --red-bg: #F3E1DD;
-    --green: #3F7A5E;
-    --green-bg: #E1EEE6;
-    --tape: #E8A33D;
+    --bg: #FBEAF0;
+    --paper: #FFF8FA;
+    --ink: #5C3A45;
+    --ink-soft: #A97C8A;
+    --rule: #F2CBD8;
+    --red: #D6577C;
+    --red-bg: #FBDCE6;
+    --green: #4E9C88;
+    --green-bg: #E3F3EE;
+    --tape: #F0AFC4;
   }
 
   *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
@@ -151,6 +151,109 @@
     padding: 6px 14px; cursor:pointer; font-family: inherit;
   }
   .month-nav .label{ font-weight:700; font-size:14px; }
+
+  /* ---- view tabs ---- */
+  .view-tabs{
+    display:flex;
+    gap:8px;
+    margin-bottom: 14px;
+  }
+  .view-tab{
+    flex:1;
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    background: var(--paper);
+    color: var(--ink-soft);
+    font-family:'Anton', sans-serif;
+    letter-spacing:1px;
+    font-size:12px;
+    cursor:pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  }
+  .view-tab.active{
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  /* ---- ringkasan (summary) ---- */
+  .summary-section{
+    background: var(--paper);
+    border-radius: 12px;
+    padding: 14px 16px 6px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .summary-title{
+    font-family:'Anton', sans-serif;
+    letter-spacing:1px;
+    font-size:13px;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .summary-subtitle{
+    font-size: 10px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color: var(--ink-soft);
+    margin: 12px 0 8px;
+  }
+  .cat-row{
+    margin-bottom: 12px;
+  }
+  .cat-row-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:12px;
+    margin-bottom: 4px;
+  }
+  .cat-row-name{ display:flex; align-items:center; gap:6px; font-weight:700; color: var(--ink); }
+  .cat-row-amt{ font-weight:700; white-space:nowrap; }
+  .cat-row-amt.out{ color: var(--red); }
+  .cat-row-amt.in{ color: var(--green); }
+  .cat-bar-track{
+    height: 8px;
+    border-radius: 5px;
+    background: var(--rule);
+    overflow:hidden;
+  }
+  .cat-bar-fill{
+    height:100%;
+    border-radius:5px;
+  }
+  .cat-bar-fill.out{ background: var(--red); }
+  .cat-bar-fill.in{ background: var(--green); }
+
+  .day-row{
+    margin-bottom: 10px;
+  }
+  .day-row-top{
+    display:flex;
+    justify-content:space-between;
+    font-size:12px;
+    margin-bottom: 4px;
+  }
+  .day-row-date{ font-weight:700; color: var(--ink); }
+  .day-row-net{ font-weight:700; }
+  .day-row-net.pos{ color: var(--green); }
+  .day-row-net.neg{ color: var(--red); }
+  .day-bar-track{
+    display:flex;
+    height: 8px;
+    border-radius: 5px;
+    overflow:hidden;
+    background: var(--rule);
+  }
+  .day-bar-in{ background: var(--green); height:100%; }
+  .day-bar-out{ background: var(--red); height:100%; }
+
+  .summary-empty{
+    text-align:center;
+    padding: 16px 0 20px;
+    color: var(--ink-soft);
+    font-size:12px;
+  }
 
   /* ---- tx list ---- */
   .day-group{ margin-bottom: 10px; }
@@ -376,7 +479,25 @@
     <button id="nextMonth">›</button>
   </div>
 
-  <div id="txList"></div>
+  <div class="view-tabs">
+    <button class="view-tab active" id="tabRiwayat" data-view="riwayat">RIWAYAT</button>
+    <button class="view-tab" id="tabRingkasan" data-view="ringkasan">RINGKASAN</button>
+  </div>
+
+  <div id="riwayatView">
+    <div id="txList"></div>
+  </div>
+
+  <div id="ringkasanView" style="display:none">
+    <div class="summary-section">
+      <div class="summary-title">📅 Kas per Hari</div>
+      <div id="daySummary"></div>
+    </div>
+    <div class="summary-section">
+      <div class="summary-title">🏷️ Kas per Kategori</div>
+      <div id="catSummary"></div>
+    </div>
+  </div>
 </div>
 
 <button class="fab" id="openSheet">+</button>
@@ -439,6 +560,7 @@ let transactions = [];
 let currentType = 'out';
 let currentCat = null;
 let viewMonth = new Date();
+let currentView = 'riwayat';
 
 function rupiah(n){
   return 'Rp ' + Math.round(n).toLocaleString('id-ID');
@@ -454,19 +576,19 @@ function todayStr(){
   return d.toISOString().slice(0,10);
 }
 
-async function loadData(){
+function loadData(){
   try{
-    const res = await window.storage.get(STORAGE_KEY, false);
-    transactions = res ? JSON.parse(res.value) : [];
+    const raw = localStorage.getItem(STORAGE_KEY);
+    transactions = raw ? JSON.parse(raw) : [];
   }catch(e){
     transactions = [];
   }
   render();
 }
 
-async function saveData(){
+function saveData(){
   try{
-    await window.storage.set(STORAGE_KEY, JSON.stringify(transactions), false);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
   }catch(e){
     showToast('Gagal menyimpan, coba lagi ya');
   }
@@ -487,6 +609,8 @@ function render(){
   renderMonthLabel();
   renderBalanceAndTotals();
   renderList();
+  renderDaySummary();
+  renderCategorySummary();
 }
 
 function renderMonthLabel(){
@@ -552,6 +676,88 @@ function renderList(){
   list.querySelectorAll('.tx-del').forEach(btn=>{
     btn.addEventListener('click', onDelete);
   });
+}
+
+function renderDaySummary(){
+  const el = document.getElementById('daySummary');
+  const monthTx = transactions.filter(inSelectedMonth);
+
+  if(monthTx.length === 0){
+    el.innerHTML = '<div class="summary-empty">Belum ada data bulan ini.</div>';
+    return;
+  }
+
+  const byDay = {};
+  monthTx.forEach(tx=>{
+    if(!byDay[tx.date]) byDay[tx.date] = {in:0, out:0};
+    byDay[tx.date][tx.type] += tx.amount;
+  });
+
+  const dates = Object.keys(byDay).sort().reverse();
+  const maxTotal = Math.max(...dates.map(d=> byDay[d].in + byDay[d].out), 1);
+
+  let html = '';
+  dates.forEach(date=>{
+    const {in: dIn, out: dOut} = byDay[date];
+    const net = dIn - dOut;
+    const inPct = (dIn / maxTotal) * 100;
+    const outPct = (dOut / maxTotal) * 100;
+    html += `<div class="day-row">
+      <div class="day-row-top">
+        <span class="day-row-date">${fmtDate(date)}</span>
+        <span class="day-row-net ${net>=0?'pos':'neg'}">${net>=0?'+':''}${rupiah(net)}</span>
+      </div>
+      <div class="day-bar-track">
+        <div class="day-bar-in" style="width:${inPct}%"></div>
+        <div class="day-bar-out" style="width:${outPct}%"></div>
+      </div>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+function renderCategorySummary(){
+  const el = document.getElementById('catSummary');
+  const monthTx = transactions.filter(inSelectedMonth);
+
+  if(monthTx.length === 0){
+    el.innerHTML = '<div class="summary-empty">Belum ada data bulan ini.</div>';
+    return;
+  }
+
+  const totals = {out: {}, in: {}};
+  monthTx.forEach(tx=>{
+    totals[tx.type][tx.category] = (totals[tx.type][tx.category] || 0) + tx.amount;
+  });
+
+  function buildRows(type, label){
+    const entries = Object.entries(totals[type]).sort((a,b)=> b[1]-a[1]);
+    if(entries.length === 0) return '';
+    const max = entries[0][1];
+    let rows = `<div class="summary-subtitle">${label}</div>`;
+    entries.forEach(([catId, amt])=>{
+      const meta = catMeta(type, catId);
+      const pct = (amt / max) * 100;
+      rows += `<div class="cat-row">
+        <div class="cat-row-top">
+          <span class="cat-row-name">${meta.icon} ${meta.label}</span>
+          <span class="cat-row-amt ${type}">${rupiah(amt)}</span>
+        </div>
+        <div class="cat-bar-track"><div class="cat-bar-fill ${type}" style="width:${pct}%"></div></div>
+      </div>`;
+    });
+    return rows;
+  }
+
+  el.innerHTML = buildRows('out', 'Pengeluaran') + buildRows('in', 'Pemasukan');
+}
+
+function switchView(view){
+  currentView = view;
+  document.getElementById('tabRiwayat').classList.toggle('active', view === 'riwayat');
+  document.getElementById('tabRingkasan').classList.toggle('active', view === 'ringkasan');
+  document.getElementById('riwayatView').style.display = view === 'riwayat' ? '' : 'none';
+  document.getElementById('ringkasanView').style.display = view === 'ringkasan' ? '' : 'none';
 }
 
 function escapeHtml(str){
@@ -644,6 +850,9 @@ document.getElementById('overlay').addEventListener('click', (e)=>{
 document.getElementById('btnOut').addEventListener('click', ()=>setType('out'));
 document.getElementById('btnIn').addEventListener('click', ()=>setType('in'));
 document.getElementById('saveBtn').addEventListener('click', onSave);
+
+document.getElementById('tabRiwayat').addEventListener('click', ()=>switchView('riwayat'));
+document.getElementById('tabRingkasan').addEventListener('click', ()=>switchView('ringkasan'));
 
 document.getElementById('prevMonth').addEventListener('click', ()=>{
   viewMonth.setMonth(viewMonth.getMonth()-1);
